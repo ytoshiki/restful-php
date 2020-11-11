@@ -1,0 +1,12 @@
+in .htaccess file
+
+ php_flag display_errors on
+
+what the above one does is show php errors on a screen.
+
+
+Questions>>>>>>>>>>>>>>>>>>>>>
+
+$this->_messages[] = $message;
+
+? is it not replacing the variable? or adding? 
