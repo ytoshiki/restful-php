@@ -10,3 +10,10 @@ Questions>>>>>>>>>>>>>>>>>>>>>
 $this->_messages[] = $message;
 
 ? is it not replacing the variable? or adding? 
+
+
+if(self::variablename) {
+
+}
+
+? self is class itself not an instance
