@@ -8,6 +8,7 @@
     private $_toCache = false;
     private $_responseData = [];
 
+    
     public function setSuccess($success) {
       $this->_success = $success;
     }
@@ -57,6 +58,36 @@
       echo json_encode($this->_responseData);
 
     }
+
+
+    public function successResponse($statusCode, $msg, $data) {
+ 
+      $this->setHttpStatusCode($statusCode);
+      $this->setSuccess(true);
+      $this->addMessage($msg);
+      $this->toCache(true);
+      $this->setData($data);
+      $this->send();
+      //exit();
+    }
+
+    public function NoMethodError() {
+      $this->setHttpStatusCode(405);
+      $this->setSuccess(false);
+      $this->addMessage("Method Not Allowd");
+      $this->send();
+      // exit();
+    }
+
+    public function FOFError($msg) {
+ 
+      $this->setHttpStatusCode(400);
+      $this->setSuccess(false);
+      $this->addMessage($msg);
+      $this->send();
+      // exit();
+    }
+
 
 
  }

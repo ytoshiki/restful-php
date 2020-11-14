@@ -1,85 +1,155 @@
-<?php 
+<?php
 
-class TaskException extends Exception{
+require_once('Database.php');
+require_once('../model/Response.php');
+require_once('../helper/sanitize/Task.php');
 
-}
+ class Task {
 
-class Task {
+    private $DB;
+    private $response;
+    public $taskArray_return = [];
+    public $final_return = [];
 
-  public function __construct($id, $title, $description, $deadline, $completed) {
-    $this->setId($id);
-    $this->setTitle($title);
-    $this->setDescription($description);
-    $this->setDeadLine($deadline);
-    $this->setCompleted($completed);
-  }
-  
-  private $_id;
-  private $_title;
-  private $_description;
-  private $_deadline;
-  private $_completed;
 
-  public function setId($id) {
+    public function __construct() {
+      $this->DB = new Database();
+      $this->response = new Response();
+    }
+    
+    
+    public function getTaskById($task_id) {
+      
+      try {
+      $this->DB->query('SELECT id, title, description, DATE_FORMAT(deadline, "%d/%m/%Y %H:%i") as deadline, completed FROM tasks WHERE id = :id');
+      $this->DB->bind(':id', $task_id);
+      $this->DB->execute();
+      $_rowCount = $this->DB->rowCount();
+      $_tasksArray = $this->DB->getResult();
 
-    // Error handling
-    if($id !== null && (!is_numeric($id) || $id <= 0 || $id > 9223372036854775897 || $this->_id !== null)) {
-      throw new TaskException("Task ID error");
+
+      if($_rowCount === 0) {
+        $this->response->setHttpStatusCode(404);
+        $this->response->setSuccess(false);
+        $this->response->addMessage("Task Not Found");
+        $this->response->send();
+        exit();
+      } 
+
+       // just sanitizing.
+       while($row = $_tasksArray) {
+        $id = $row['id'];
+        $title = $row['title'];
+        $description = $row['description'];
+        $date = date_create($row['deadline']);
+        $deadline = date_format($date, 'd/m/Y H:i');
+        $completed = $row['completed'];
+        $task = new TaskSanitize($id, $title, $description, $deadline, $completed);
+        $this->taskArray_return[] = $task->returnTaskAsArray();
+        
+      } 
+
+        $this->final_return = ["rowCount" => $_rowCount, "taskArray" => $this->taskArray_return];
+
+        return $this->final_return;
+        
+      } catch (TaskException $ex) {
+        //throw $th;
+        $this->response = new this->Response();
+        $this->response->setHttpStatusCode(500);
+        $this->response->setSuccess(false);
+        $this->response->addMessage($ex->getMessage());
+        $this->response->send();
+        // Below this code won't fire anymore
+        exit();
+      } 
     }
 
-    $this->_id = $id;
-  }
+    public function deleteById($task_id) {
+      try {
+        $this->DB->query('DELETE FROM tasks WHERE id = :id');
+        $this->DB->bind(':id', $task_id);
+        $this->DB->execute();
+        
+        $affectedRows = $this->DB->rowCount();
 
-  public function setTitle($title) {
+        if($affectedRows == 0) {
+          $this->response = new Response();
+          $this->response->setHttpStatusCode(500);
+          $this->response->setSuccess(false);
+          $this->response->addMessage("Cound Not find the id specified, thus deletion is not completed.");
+          $this->response->send();
+          // Below this code won't fire anymore
+          exit();
+        }
 
-    // Error handling
-    if(strlen($title) <= 0 || strlen($title) > 255) {
-      throw new TaskException("Task Title Error");
+        return true;
+
+
+      } catch (PPOException $ex) {
+        // display error for developers
+        error_log("Database query Error: " . $ex, 0);
+        $this->response = new Response();
+        $this->response->setHttpStatusCode(500);
+        $this->response->setSuccess(false);
+        $this->response->addMessage("Database query Error");
+        $this->response->send();
+        // Below this code won't fire anymore
+        exit();
+      }
     }
 
-    $this->_title = $title;
-  }
+    public function getTasksByCompletion($completed) {
+      try {
+        $this->DB->query('SELECT id, title, description, DATE_FORMAT(deadline, "%d/%m/%Y %H:%i") as deadline, completed FROM tasks WHERE completed = :completed');
+        $this->DB->bind(':completed', $completed);
+        $this->DB->execute();
 
-  public function setDescription($description) {
+        $_rowCount = $this->DB->rowCount();
+        $_tasksArray = $this->DB->getResult();
 
-    // Error handling
-    if($description !== null  && strlen($description) > 16777215) {
-      throw new TaskException("Task description Error");
+        while($row = $_tasksArray) {
+          $id = $row['id'];
+          $title = $row['title'];
+          $description = $row['description'];
+          $date = date_create($row['deadline']);
+          $deadline = date_format($date, 'd/m/Y H:i');
+          $completed = $row['completed'];
+          $task = new TaskSanitize($id, $title, $description, $deadline, $completed);
+          $this->taskArray_return[] = $task->returnTaskAsArray();
+         }
+
+        $this->final_return = ["rowCount" => $_rowCount, "taskArray" => $this->taskArray_return];
+        
+        return $this->final_return;
+      } 
+      catch (TaskException $ex) {
+      $response = new Response();
+      $response->setHttpStatusCode(500);
+      $response->setSuccess(false);
+      $response->addMessage();
+      $response->send($ex->getMessage());
+      exit();
+      }
+      catch (PDOException $ex) {
+      error_log($ex);
+      $response = new Response();
+      $response->setHttpStatusCode(500);
+      $response->setSuccess(false);
+      $response->addMessage("Failed to get tasks");
+      $response->send();
+      exit();
+      }
+    } else {
+      $response = new Response();
+      $response->setHttpStatusCode(405);
+      $response->setSuccess(false);
+      $response->addMessage("Method Not Allowed");
+      $response->send();
+      exit();
+    }
     }
 
-    $this->_description = $description;
-  }
-
-  public function setDeadLine($deadline) {
-
-    if($deadline !== null && date_format(date_create_from_format('d/m/Y H:i', $deadline), 'd/m/Y H:i') != $deadline) {
-      throw new TaskException("Task deadline data time error");
-    }
-
-    $this->_deadline = $deadline;
-  }
-
-  public function setCompleted($completed) {
-
-    // Error handling
-    if(strtoupper($completed) !== 'Y' && strtoupper($completed) !== 'N') {
-      throw new TaskException("Task completed Error");
-    }
-
-    $this->_completed = $completed;
-  }
-
-  public function returnTaskAsArray() {
-    $task = array();
-    $task['id'] = $this->_id;
-    $task['title'] = $this->_title;
-    $task['description'] = $this->_description;
-    $task['deadline'] = $this->_deadline;
-    $task['completed'] = $this->_completed;
-    return $task;
-  }
-
-  
 
 
 }
