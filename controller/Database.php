@@ -14,10 +14,10 @@
 
     public function __construct() {
       $this->response = new Response();
-      this->connectDB();
+      $this->connectDB();
     }
 
-    public function connectWriteDB() {
+    public function connectDB() {
 
       if($this->DBConnection === null) {
 
@@ -26,19 +26,19 @@
 
             $this->DBConnection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             $this->DBConnection->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
+            return $this->DBConnection;
+          } catch (PDOException $ex) {
+            // display error for developers
+            error_log("Database query Error: " . $ex, 0);
+            $this->response->setHttpStatusCode(500);
+            $this->response->setSuccess(false);
+            $this->response->addMessage("Database query Error");
+            $this->response->send();
+            // Below this code won't fire anymore
+            exit();
           }
-          return $this->DBConnection;
+          }
 
-        } catch (PDOException $ex) {
-          // display error for developers
-          error_log("Database query Error: " . $ex, 0);
-          $this->response->setHttpStatusCode(500);
-          $this->response->setSuccess(false);
-          $this->response->addMessage("Database query Error");
-          $this->response->send();
-          // Below this code won't fire anymore
-          exit();
-        }
     }
 
     public function query($query) {

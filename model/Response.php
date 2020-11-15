@@ -60,7 +60,7 @@
     }
 
 
-    public function successResponse($statusCode, $msg, $data) {
+    public function successResponse($statusCode, $msg, $data = []) {
  
       $this->setHttpStatusCode($statusCode);
       $this->setSuccess(true);
@@ -68,7 +68,7 @@
       $this->toCache(true);
       $this->setData($data);
       $this->send();
-      //exit();
+      exit;
     }
 
     public function NoMethodError() {
@@ -76,7 +76,7 @@
       $this->setSuccess(false);
       $this->addMessage("Method Not Allowd");
       $this->send();
-      // exit();
+      exit;
     }
 
     public function FOFError($msg) {
@@ -85,9 +85,16 @@
       $this->setSuccess(false);
       $this->addMessage($msg);
       $this->send();
-      // exit();
+      exit;
     }
 
+    public function errorResponse($code, $msg) {
+ 
+      $this->setHttpStatusCode($code);
+      $this->setSuccess(false);
+      $this->addMessage($msg);
+      $this->send();
+      exit;
 
-
- }
+    }
+}

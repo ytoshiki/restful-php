@@ -25,19 +25,13 @@ require_once('../helper/sanitize/Task.php');
       $this->DB->bind(':id', $task_id);
       $this->DB->execute();
       $_rowCount = $this->DB->rowCount();
-      $_tasksArray = $this->DB->getResult();
-
-
+ 
       if($_rowCount === 0) {
-        $this->response->setHttpStatusCode(404);
-        $this->response->setSuccess(false);
-        $this->response->addMessage("Task Not Found");
-        $this->response->send();
-        exit();
+        $this->response->errorResponse(404, "Task Not Found");
       } 
 
        // just sanitizing.
-       while($row = $_tasksArray) {
+       while($row = $this->DB->getResult()) {
         $id = $row['id'];
         $title = $row['title'];
         $description = $row['description'];
@@ -55,7 +49,6 @@ require_once('../helper/sanitize/Task.php');
         
       } catch (TaskException $ex) {
         //throw $th;
-        $this->response = new this->Response();
         $this->response->setHttpStatusCode(500);
         $this->response->setSuccess(false);
         $this->response->addMessage($ex->getMessage());
@@ -106,9 +99,8 @@ require_once('../helper/sanitize/Task.php');
         $this->DB->execute();
 
         $_rowCount = $this->DB->rowCount();
-        $_tasksArray = $this->DB->getResult();
 
-        while($row = $_tasksArray) {
+        while($row = $this->DB->getResult()) {
           $id = $row['id'];
           $title = $row['title'];
           $description = $row['description'];
@@ -140,15 +132,119 @@ require_once('../helper/sanitize/Task.php');
       $response->send();
       exit();
       }
-    } else {
+    } 
+
+    public function readPerPage($page, $limitPerPage) {
+      try {
+        $this->DB->query('SELECT count(id) as totalNoOfTasks from tasks');
+        $this->DB->execute();
+
+        $row = $this->DB->getResult();
+
+        $tasksCount = intval($row['totalNoOfTasks']);
+
+        $pageNum = ceil($tasksCount / $limitPerPage);
+
+        if($pageNum == 0) {
+          $pageNum = 1;
+        }
+
+        if($page > $pageNum || $page == 0) {
+          $response = new Response();
+          $response->setHttpStatusCode(404);
+          $response->setSuccess(false);
+          $response->addMessage("page number does not exist");
+          $response->send();
+          exit();
+        }
+
+        $offset = ($page == 1 ? 0 : ($limitPerPage * ($page - 1)));
+
+        $this->DB->query('SELECT * FROM tasks LIMIT :offset, :pglimit');
+        $this->DB->bind(':offset', $offset);
+        $this->DB->bind(':pglimit', $limitPerPage);
+        $this->DB->execute();
+
+        
+        $_rowCount = $this->DB->rowCount();
+
+        while($row = $this->DB->getResult()) {
+          $id = $row['id'];
+          $title = $row['title'];
+          $description = $row['description'];
+          $date = date_create($row['deadline']);
+          $deadline = date_format($date, 'd/m/Y H:i');
+          $completed = $row['completed'];
+          $task = new TaskSanitize($id, $title, $description, $deadline, $completed);
+          $this->taskArray_return[] = $task->returnTaskAsArray();
+      }
+
+      $this->final_return = ["rowCount" => $_rowCount, "taskArray" => $this->taskArray_return, "totalRows" => $tasksCount, "totalPages" => $pageNum ];
+
+      return $this->final_return;
+
+    } catch (PDOException $ex) {
+      error_log($ex);
       $response = new Response();
-      $response->setHttpStatusCode(405);
+      $response->setHttpStatusCode(500);
       $response->setSuccess(false);
-      $response->addMessage("Method Not Allowed");
+      $response->addMessage("Filed to get tasks");
       $response->send();
       exit();
     }
+    catch (TaskException $ex) {
+      $response = new Response();
+      $response->setHttpStatusCode(500);
+      $response->setSuccess(false);
+      $response->addMessage($ex->getMessage());
+      $response->send();
+      exit();
     }
+  }
+
+  public function getAllTasks() {
+    try {
+      $this->DB->query('SELECT * FROM tasks');
+      $this->DB->execute();
+
+ 
+
+      $_rowCount = $this->DB->rowCount();
+
+      while($row = $this->DB->getResult()) {
+        $id = $row['id'];
+        $title = $row['title'];
+        $description = $row['description'];
+        $date = date_create($row['deadline']);
+        $deadline = date_format($date, 'd/m/Y H:i');
+        $completed = $row['completed'];
+        $task = new TaskSanitize($id, $title, $description, $deadline, $completed);
+        $this->taskArray_return[] = $task->returnTaskAsArray();
+    }
+
+    $this->final_return = ["rowCount" => $_rowCount, "taskArray" => $this->taskArray_return];
+
+    return $this->final_return;
+
+  } catch (TaskException $ex) {
+    $response = new Response();
+    $response->setHttpStatusCode(500);
+    $response->setSuccess(false);
+    $response->addMessage($ex->getMessage());
+    $response->send();
+    exit();
+  }      
+  catch (PDOException $ex) {
+    error_log($ex);
+    $response = new Response();
+    $response->setHttpStatusCode(500);
+    $response->setSuccess(false);
+    $response->addMessage("Failed to get tasks");
+    $response->send();
+    exit();
+  }
+
+  }
 
 
 
