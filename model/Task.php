@@ -21,6 +21,7 @@ require_once('../helper/sanitize/Task.php');
     public function getTaskById($task_id) {
       
       try {
+        
       $this->DB->query('SELECT id, title, description, DATE_FORMAT(deadline, "%d/%m/%Y %H:%i") as deadline, completed FROM tasks WHERE id = :id');
       $this->DB->bind(':id', $task_id);
       $this->DB->execute();
@@ -35,8 +36,8 @@ require_once('../helper/sanitize/Task.php');
         $id = $row['id'];
         $title = $row['title'];
         $description = $row['description'];
-        $date = date_create($row['deadline']);
-        $deadline = date_format($date, 'd/m/Y H:i');
+       
+        $deadline = $row['deadline'];
         $completed = $row['completed'];
         $task = new TaskSanitize($id, $title, $description, $deadline, $completed);
         $this->taskArray_return[] = $task->returnTaskAsArray();
@@ -92,10 +93,10 @@ require_once('../helper/sanitize/Task.php');
       }
     }
 
-    public function getTasksByCompletion($completed) {
+    public function getTasksByCompletion($_completed) {
       try {
         $this->DB->query('SELECT id, title, description, DATE_FORMAT(deadline, "%d/%m/%Y %H:%i") as deadline, completed FROM tasks WHERE completed = :completed');
-        $this->DB->bind(':completed', $completed);
+        $this->DB->bind(':completed', $_completed);
         $this->DB->execute();
 
         $_rowCount = $this->DB->rowCount();
@@ -104,8 +105,8 @@ require_once('../helper/sanitize/Task.php');
           $id = $row['id'];
           $title = $row['title'];
           $description = $row['description'];
-          $date = date_create($row['deadline']);
-          $deadline = date_format($date, 'd/m/Y H:i');
+        
+          $deadline = $row['deadline'];
           $completed = $row['completed'];
           $task = new TaskSanitize($id, $title, $description, $deadline, $completed);
           $this->taskArray_return[] = $task->returnTaskAsArray();
@@ -116,20 +117,20 @@ require_once('../helper/sanitize/Task.php');
         return $this->final_return;
       } 
       catch (TaskException $ex) {
-      $response = new Response();
-      $response->setHttpStatusCode(500);
-      $response->setSuccess(false);
-      $response->addMessage();
-      $response->send($ex->getMessage());
+      $this->response = new Response();
+      $this->response->setHttpStatusCode(500);
+      $this->response->setSuccess(false);
+      $this->response->addMessage();
+      $this->response->send($ex->getMessage());
       exit();
       }
       catch (PDOException $ex) {
       error_log($ex);
-      $response = new Response();
-      $response->setHttpStatusCode(500);
-      $response->setSuccess(false);
-      $response->addMessage("Failed to get tasks");
-      $response->send();
+      $this->response = new Response();
+      $this->response->setHttpStatusCode(500);
+      $this->response->setSuccess(false);
+      $this->response->addMessage("Failed to get tasks");
+      $this->response->send();
       exit();
       }
     } 
@@ -150,17 +151,17 @@ require_once('../helper/sanitize/Task.php');
         }
 
         if($page > $pageNum || $page == 0) {
-          $response = new Response();
-          $response->setHttpStatusCode(404);
-          $response->setSuccess(false);
-          $response->addMessage("page number does not exist");
-          $response->send();
+          $this->response = new Response();
+          $this->response->setHttpStatusCode(404);
+          $this->response->setSuccess(false);
+          $this->response->addMessage("page number does not exist");
+          $this->response->send();
           exit();
         }
 
         $offset = ($page == 1 ? 0 : ($limitPerPage * ($page - 1)));
 
-        $this->DB->query('SELECT * FROM tasks LIMIT :offset, :pglimit');
+        $this->DB->query('SELECT id, title, description, DATE_FORMAT(deadline, "%d/%m/%Y %H:%i") as deadline, completed FROM tasks LIMIT :offset, :pglimit');
         $this->DB->bind(':offset', $offset);
         $this->DB->bind(':pglimit', $limitPerPage);
         $this->DB->execute();
@@ -172,8 +173,8 @@ require_once('../helper/sanitize/Task.php');
           $id = $row['id'];
           $title = $row['title'];
           $description = $row['description'];
-          $date = date_create($row['deadline']);
-          $deadline = date_format($date, 'd/m/Y H:i');
+         
+          $deadline = $row['deadline'];
           $completed = $row['completed'];
           $task = new TaskSanitize($id, $title, $description, $deadline, $completed);
           $this->taskArray_return[] = $task->returnTaskAsArray();
@@ -185,26 +186,26 @@ require_once('../helper/sanitize/Task.php');
 
     } catch (PDOException $ex) {
       error_log($ex);
-      $response = new Response();
-      $response->setHttpStatusCode(500);
-      $response->setSuccess(false);
-      $response->addMessage("Filed to get tasks");
-      $response->send();
+      $this->response = new Response();
+      $this->response->setHttpStatusCode(500);
+      $this->response->setSuccess(false);
+      $this->response->addMessage("Filed to get tasks");
+      $this->response->send();
       exit();
     }
     catch (TaskException $ex) {
-      $response = new Response();
-      $response->setHttpStatusCode(500);
-      $response->setSuccess(false);
-      $response->addMessage($ex->getMessage());
-      $response->send();
+      $this->response = new Response();
+      $this->response->setHttpStatusCode(500);
+      $this->response->setSuccess(false);
+      $this->response->addMessage($ex->getMessage());
+      $this->response->send();
       exit();
     }
   }
 
   public function getAllTasks() {
     try {
-      $this->DB->query('SELECT * FROM tasks');
+      $this->DB->query('SELECT id, title, description, DATE_FORMAT(deadline, "%d/%m/%Y %H:%i") as deadline, completed FROM tasks');
       $this->DB->execute();
 
  
@@ -215,8 +216,8 @@ require_once('../helper/sanitize/Task.php');
         $id = $row['id'];
         $title = $row['title'];
         $description = $row['description'];
-        $date = date_create($row['deadline']);
-        $deadline = date_format($date, 'd/m/Y H:i');
+        $deadline = $row['deadline'];
+       
         $completed = $row['completed'];
         $task = new TaskSanitize($id, $title, $description, $deadline, $completed);
         $this->taskArray_return[] = $task->returnTaskAsArray();
@@ -227,25 +228,151 @@ require_once('../helper/sanitize/Task.php');
     return $this->final_return;
 
   } catch (TaskException $ex) {
-    $response = new Response();
-    $response->setHttpStatusCode(500);
-    $response->setSuccess(false);
-    $response->addMessage($ex->getMessage());
-    $response->send();
+    $this->response = new Response();
+    $this->response->setHttpStatusCode(500);
+    $this->response->setSuccess(false);
+    $this->response->addMessage($ex->getMessage());
+    $this->response->send();
     exit();
   }      
   catch (PDOException $ex) {
     error_log($ex);
-    $response = new Response();
-    $response->setHttpStatusCode(500);
-    $response->setSuccess(false);
-    $response->addMessage("Failed to get tasks");
-    $response->send();
+    $this->response = new Response();
+    $this->response->setHttpStatusCode(500);
+    $this->response->setSuccess(false);
+    $this->response->addMessage("Failed to get tasks");
+    $this->response->send();
     exit();
   }
 
   }
 
+  public function createTask($jsonData) {
+    try {
+      
+      $newTask = new TaskSanitize(null, $jsonData["title"], isset($jsonData["description"]) ? $jsonData["description"] : null, isset($jsonData["deadline"]) ? $jsonData["deadline"] : null, $jsonData["completed"]);
+
+      $sanitizedArray = $newTask->returnTaskAsArray();
+
+      $this->DB->query('INSERT INTO tasks (title, description, deadline, completed) VALUE (:title, :description, STR_TO_DATE(:deadline, "%d/%m/%Y %H:%i"), :completed)');
+      $this->DB->bind(":title", $sanitizedArray['title']);
+      $this->DB->bind(":description", $sanitizedArray['description']);
+      $this->DB->bind(":deadline", $sanitizedArray['deadline']);
+      $this->DB->bind(":completed", $sanitizedArray['completed']);
+      $this->DB->execute();
+
+      $insertedId = $this->DB->getLastId();
+     
+
+      $numRowAffected = $this->DB->rowCount();
+      
+      if($numRowAffected == 0) {
+        $this->response->errorResponse(500, "Failed to create a task");
+      }
+
+      $this->DB->query("SELECT id, title, description, DATE_FORMAT(deadline, '%d/%m/%Y %H:%i') as deadline, completed FROM tasks WHERE id = :id");
+      $this->DB->bind(':id', $insertedId);
+      $this->DB->execute();
+
+      $numRowAffected = $this->DB->rowCount();
+
+      if($numRowAffected == 0) {
+        $this->response->errorResponse(500, "Failed to create a task");
+      }
+
+
+      while($row = $this->DB->getResult()) {
+        $id = $row['id'];
+        $title = $row['title'];
+        $description = $row['description'];
+        $deadline = $row['deadline'];
+        $completed = $row['completed'];
+        $task = new TaskSanitize($id, $title, $description, $deadline, $completed);
+        $this->taskArray_return[] = $task->returnTaskAsArray();
+    }
+
+      $this->final_return = ["rowCount" => $numRowAffected, "taskArray" => $this->taskArray_return];
+
+      return $this->final_return;
+
+    } catch (TaskException $ex) {
+    
+      $this->response->errorResponse(500, $ex->getMessage());
+    }      
+    catch (PDOException $ex) {
+      error_log($ex);
+      $this->response->errorResponse(500, "Failed to create a task");
+    }
+
+    }
+
+    public function updateTask($task_id, $requestData, $updateQuery, $checksheet) {
+      try {
+        $this->DB->query("SELECT * FROM tasks WHERE id = :id");
+        $this->DB->bind(':id', $task_id);
+        $this->DB->execute();
+        if($this->DB->rowCount() == 0) {
+          $this->response->errorResponse(400, "Id is incorrect");
+        }
+       
+     
+        $this->DB->query("UPDATE tasks 
+        SET 
+          $updateQuery
+        WHERE 
+          id = :id");
+
+        foreach($checksheet as $key => $value) {
+          if($value == true) {
+            $this->DB->bind(":$key", $requestData[$key]);
+          }
+        }
+
+        $this->DB->bind(":id", $task_id);
+
+        $this->DB->execute();
+
+        if($this->DB->rowCount() == 0) {
+          $this->response->errorResponse(400, "Failed to update, rowCount is still 0");
+        }
+
+  
+        $this->DB->query("SELECT id, title, description, DATE_FORMAT(deadline, '%d/%m/%Y %H:%i') as deadline, completed FROM tasks WHERE id = :id");
+        $this->DB->bind(':id', $task_id);
+        $this->DB->execute();
+  
+        $numRowAffected = $this->DB->rowCount();
+  
+        if($numRowAffected == 0) {
+          $this->response->errorResponse(500, "Failed to create a task");
+        }
+  
+        while($row = $this->DB->getResult()) {
+          $id = $row['id'];
+          $title = $row['title'];
+          $description = $row['description'];
+          $deadline = $row['deadline'];
+          $completed = $row['completed'];
+          $task = new TaskSanitize($id, $title, $description, $deadline, $completed);
+          $this->taskArray_return[] = $task->returnTaskAsArray();
+      }
+  
+        $this->final_return = ["rowCount" => $numRowAffected, "taskArray" => $this->taskArray_return];
+  
+        return $this->final_return;
+    
+  
+      } catch (TaskException $ex) {
+      
+        $this->response->errorResponse(500, $ex->getMessage());
+      }      
+      catch (PDOException $ex) {
+        error_log($ex);
+        $this->response->errorResponse(500, "Failed to create a task");
+      }
+  
+      }
+  
 
 
 }

@@ -41,6 +41,61 @@
 
     }elseif($_SERVER['REQUEST_METHOD'] === 'PUT') {
 
+      if($_SERVER['CONTENT_TYPE'] !== 'application/json') {
+        $response->errorResponse(400, "Content Type header in not set to JSON");
+      }
+
+      $rawBodyData = file_get_contents('php://input');
+
+      if(!$encodedBodyData = json_decode($rawBodyData, true)) {
+        $response->errorResponse(400, "Request Data must be JSON format");
+      }
+
+      $checksheet = [];
+      $checksheet["title"] = false;
+      $checksheet["description"] = false;
+      $checksheet["deadline"] = false;
+      $checksheet["completed"] = false;
+      $updatequery = '';
+
+      if(isset($encodedBodyData["title"])) {
+        $checksheet["title"] = true;
+        $updatequery .= 'title = :title, ';
+      }
+
+      if(isset($encodedBodyData["description"])) {
+        $checksheet["description"] = true;
+        $updatequery .= 'description = :description, ';
+      }
+
+      if(isset($encodedBodyData["deadline"])) {
+        $checksheet["deadline"] = true;
+        $updatequery .= 'deadline = STR_TO_DATE(:deadline, "%d/%m/%Y %H:%i"), ';
+      }
+
+      if(isset($encodedBodyData["completed"])) {
+        $checksheet["completed"] = true;
+        $updatequery .= 'completed = :completed, ';
+      }
+
+
+      $updatequery = rtrim($updatequery, ', ');
+
+      if($checksheet["title"] == false && $checksheet["description"] == false && $checksheet["deadline"] == false && $checksheet["completed"] == false) {
+        $response->errorResponse(400, "No task field provided");
+      }
+    
+       $responseFromModel = $taskModel->updateTask($task_id, $encodedBodyData, $updatequery, $checksheet);
+
+       $returnData = $responseFromModel;
+      //  $returnData = [];
+      //  $returnData['rows_returned'] =  $responseFromModel['rowCount'];
+      //  $returnData['tasks'] =  $responseFromModel['taskArray'];
+
+       $response->successResponse(200, 'Updated Successfully ', $returnData);
+      
+
+
     } else {
       $response->NoMethodError();
     }
@@ -114,6 +169,36 @@
       
 
     } elseif($_SERVER['REQUEST_METHOD'] == 'POST') {
+
+      // Get data
+      // 1 - check if the request is JSON format 
+      // 2- convert JSON to normal
+      if($_SERVER['CONTENT_TYPE'] !== 'application/json') {
+        $response->errorResponse(400, "Content Type header in not set to JSON");
+      }
+
+      // file_get_contents('php://input') gets request body
+      $rawPostData = file_get_contents('php://input');
+
+      if(!$jsonData = json_decode($rawPostData, true)) {
+        $response->errorResponse(400, "Request body is not JSON");
+      }
+
+      if(!isset($jsonData["title"]) || !isset($jsonData["completed"])) {
+        $response->errorResponse(400, "Either title and completed is kept black. Both title and complete must be provided");
+      }
+
+
+      $responseFromModel = $taskModel->createTask($jsonData);
+
+      // Send data
+      $returnData = [];
+      $returnData['rowCount'] = $responseFromModel["rowCount"];
+      $returnData['data'] = $responseFromModel["taskArray"];
+ 
+
+      $response->successResponse(200, "Created successfuly", $returnData);
+   
 
     } else {
    

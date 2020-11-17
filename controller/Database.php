@@ -21,11 +21,19 @@
 
       if($this->DBConnection === null) {
 
-          try {
-            $this->DBConnection = new PDO("mysql:host=localhost;port=3307;dbname=tasksdb", "root", "y7d4RFWY");
+        $opt  = array(
+          PDO::MYSQL_ATTR_FOUND_ROWS   => TRUE,
+          // you may wish to set other options as well
+          PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+          PDO::ATTR_EMULATE_PREPARES => false
+      );
 
-            $this->DBConnection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            $this->DBConnection->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
+          try {
+            $this->DBConnection = new PDO("mysql:host=localhost;port=3307;dbname=tasksdb", "root", "y7d4RFWY", $opt);
+
+            // $this->DBConnection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            // $this->DBConnection->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
+          
             return $this->DBConnection;
           } catch (PDOException $ex) {
             // display error for developers
@@ -72,9 +80,16 @@
       return $this->stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+
     public function rowCount() {
       return $this->stmt->rowCount();
     }
+
+    public function getLastId() {
+      return $this->DBConnection->lastInsertId();
+    }
+
+
 
 
   }
