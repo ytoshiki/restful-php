@@ -11,6 +11,17 @@
 // sessions/3 DELETE -delete a session/log out
 // sessions/3 PUT -refresh session
 
+// handle optoins request method for cors
+if($_SERVER["REQUEST_METHOD"] === 'OPTIONS') {
+
+   header('Access-Control-Allow-Methods: *');
+   header('Access-Control-Allow-Headers: Content-Type');
+   header('Access-Control-Max-Age: 86400');
+   $responseModel->setHttpStatusCode(200);
+   $responseModel->setSuccess(true);
+   $responseModel->send();
+ }
+
   if(empty($_GET)) {
      if($_SERVER['REQUEST_METHOD'] !== 'POST') {
         $responseModel->errorResponse(405, "Method not allowd");

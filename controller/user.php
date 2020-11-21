@@ -7,6 +7,17 @@ $userModel = new User();
 $responseModel = new Response();
 
 
+// handle optoins request method for cors
+if($_SERVER["REQUEST_METHOD"] === 'OPTIONS') {
+
+  header('Access-Control-Allow-Methods: POST, OPTIONS');
+  header('Access-Control-Allow-Headers: Content-Type');
+  header('Access-Control-Max-Age: 86400');
+  $responseModel->setHttpStatusCode(200);
+  $responseModel->setSuccess(true);
+  $responseModel->send();
+}
+
 // Request method
 if($_SERVER["REQUEST_METHOD"] !== 'POST') {
   $responseModel->errorResponse(405, "Request method not allowed");
