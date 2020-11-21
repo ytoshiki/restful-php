@@ -60,7 +60,7 @@
     }
 
 
-    public function successResponse($statusCode, $msg, $data = []) {
+    public function successResponse($statusCode, $msg, $data) {
  
       $this->setHttpStatusCode($statusCode);
       $this->setSuccess(true);

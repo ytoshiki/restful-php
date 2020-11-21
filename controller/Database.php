@@ -89,6 +89,18 @@
       return $this->DBConnection->lastInsertId();
     }
 
+    public function begintransaction() {
+      $this->DBConnection->beginTransaction();
+    }
+    
+    public function rollBack() {
+      $this->DBConnection->rollBack();
+    }
+
+    public function commit() {
+      $this->DBConnection->commit();
+    }
+
 
 
 

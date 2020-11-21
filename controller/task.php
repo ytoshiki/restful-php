@@ -2,14 +2,26 @@
 
   require_once('../model/Response.php');
   require_once('../model/Task.php');
+  require_once('../model/Session.php');
   require_once('../helper/sanitize/Task.php');
 
   // Attempting to connect to DB
   $taskModel = new Task();
   $response = new Response();
+  $sessionModel = new Session();
 
   // Predefined vars
   $responseFromModel = [];
+
+  // Check Authorizaion Error
+  if(!isset($_SERVER['HTTP_AUTHORIZATION']) || strlen($_SERVER['HTTP_AUTHORIZATION']) < 1) {
+    $response->errorResponse(401, "Access token is missing or something wrong with access token");
+  }
+
+  $accessToken = $_SERVER['HTTP_AUTHORIZATION'];
+
+  $returnedFromModel = $sessionModel->checkAuth($accessToken);
+  $user_id = $returnedFromModel["user_id"];
   
  
   // Query handling 
@@ -24,7 +36,7 @@
     if($_SERVER['REQUEST_METHOD'] === 'GET') {
 
         // Get Task Data By ID  
-        $responseFromModel = $taskModel->getTaskById($task_id);
+        $responseFromModel = $taskModel->getTaskById($task_id, $user_id);
 
         // Return to client
         $returnData = [];
@@ -35,8 +47,8 @@
   
     } elseif($_SERVER['REQUEST_METHOD'] === 'DELETE') {
 
-      if($taskModel->deleteById($task_id)) {
-        $response->successResponse(200, "Deleted successfully", );
+      if($taskModel->deleteById($task_id, $user_id)) {
+        $response->successResponse(200, "Deleted successfully", "" );
       }
 
     }elseif($_SERVER['REQUEST_METHOD'] === 'PUT') {
@@ -85,12 +97,12 @@
         $response->errorResponse(400, "No task field provided");
       }
     
-       $responseFromModel = $taskModel->updateTask($task_id, $encodedBodyData, $updatequery, $checksheet);
+       $responseFromModel = $taskModel->updateTask($task_id, $encodedBodyData, $updatequery, $checksheet, $user_id);
 
-       $returnData = $responseFromModel;
-      //  $returnData = [];
-      //  $returnData['rows_returned'] =  $responseFromModel['rowCount'];
-      //  $returnData['tasks'] =  $responseFromModel['taskArray'];
+   
+       $returnData = [];
+       $returnData['rows_returned'] =  $responseFromModel['rowCount'];
+       $returnData['tasks'] =  $responseFromModel['taskArray'];
 
        $response->successResponse(200, 'Updated Successfully ', $returnData);
       
@@ -110,7 +122,7 @@
 
     if($_SERVER['REQUEST_METHOD'] === 'GET') {
 
-        $responseFromModel = $taskModel->getTasksByCompletion($completed);
+        $responseFromModel = $taskModel->getTasksByCompletion($completed, $user_id);
 
         $returnData = [];
         $returnData['rows_returned'] =  $responseFromModel['rowCount'];
@@ -127,7 +139,7 @@
     if($_SERVER['REQUEST_METHOD'] == "GET") {
 
       $page = $_GET['page'];
-      $limitPerPage = 20;
+      $limitPerPage = 10;
 
       if(!is_numeric($page) || $page == '') {
 
@@ -135,7 +147,7 @@
       
       }
 
-      $responseFromModel = $taskModel->readPerPage($page, $limitPerPage);
+      $responseFromModel = $taskModel->readPerPage($page, $limitPerPage, $user_id);
         
         $returnData = [];
         $returnData['rows_returned'] = $responseFromModel["rowCount"];
@@ -157,7 +169,7 @@
   }elseif(empty($_GET)) {
     if($_SERVER['REQUEST_METHOD'] == 'GET') {
 
-      $responseFromModel =  $taskModel->getAllTasks();
+      $responseFromModel =  $taskModel->getAllTasks($user_id);
 
      
 
@@ -189,7 +201,7 @@
       }
 
 
-      $responseFromModel = $taskModel->createTask($jsonData);
+      $responseFromModel = $taskModel->createTask($jsonData, $user_id);
 
       // Send data
       $returnData = [];
